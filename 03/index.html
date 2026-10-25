@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Poznej funkci podle grafu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#e8eef5; --card:#fbfdff; --ink:#14213d; --muted:#586a82; --line:#cddbe8;
+  --accent:#0b4fd6; --accent-ink:#ffffff; --accent-soft:#e3ecfd;
+  --good:#16794a; --good-bg:#e1f4ea; --bad:#b3261e; --bad-bg:#fcebe9; --info-bg:#eef3fa;
+  --grid:#d3e2ef; --grid-strong:#9fbad2; --axis:#14213d; --curve:#0b4fd6; --guess:#e8620f; --asym:#6b7d95;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1520; --card:#142030; --ink:#e7eef7; --muted:#9db0c6; --line:#27394e;
+    --accent:#6ea6ff; --accent-ink:#0a1626; --accent-soft:#1c2f4b;
+    --good:#5fd39a; --good-bg:#12332480; --bad:#ff8d85; --bad-bg:#3a1a1a; --info-bg:#182a3f;
+    --grid:#223549; --grid-strong:#3a5573; --axis:#e7eef7; --curve:#6ea6ff; --guess:#ff9b52; --asym:#8ea3bd;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1520; --card:#142030; --ink:#e7eef7; --muted:#9db0c6; --line:#27394e;
+  --accent:#6ea6ff; --accent-ink:#0a1626; --accent-soft:#1c2f4b;
+  --good:#5fd39a; --good-bg:#12332480; --bad:#ff8d85; --bad-bg:#3a1a1a; --info-bg:#182a3f;
+  --grid:#223549; --grid-strong:#3a5573; --axis:#e7eef7; --curve:#6ea6ff; --guess:#ff9b52; --asym:#8ea3bd;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  font-size:17px; line-height:1.45;
+}
+.wrap{max-width:1040px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:clamp(1.5rem,3.5vw,2.1rem);line-height:1.15;margin:0 0 6px;letter-spacing:-.01em}
+.lead{margin:0 0 18px;color:var(--muted);max-width:60ch}
+.modes{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.chip{
+  font:inherit;font-weight:700;cursor:pointer;
+  border:2px solid var(--line);background:var(--card);color:var(--ink);
+  padding:8px 14px;border-radius:999px;
+}
+.chip:hover{border-color:var(--grid-strong)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:820px){.layout{grid-template-columns:minmax(0,1fr)}}
+
+.graph-card{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:10px}
+#graph{display:block;width:100%;aspect-ratio:1/1;border-radius:6px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:8px 6px 2px;color:var(--muted);font-size:.9rem}
+.legend label{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+.legend input{width:18px;height:18px;accent-color:var(--guess)}
+
+.panel{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:18px}
+.task{font-size:1.15rem;font-weight:700;margin:0 0 12px}
+.answer-row{display:flex;gap:8px;align-items:stretch}
+.answer-row .y{
+  display:flex;align-items:center;padding:0 12px;font-size:1.3rem;font-weight:700;
+  background:var(--info-bg);border:2px solid var(--line);border-right:0;border-radius:10px 0 0 10px;color:var(--muted)
+}
+#answer{
+  flex:1;min-width:0;font:inherit;font-size:1.3rem;padding:10px 12px;
+  color:var(--ink);background:var(--card);
+  border:2px solid var(--line);border-radius:0 10px 10px 0;
+}
+#answer:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+#answer:disabled{opacity:.7}
+.keys{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
+.key{
+  font:inherit;font-size:1rem;min-width:44px;padding:6px 10px;cursor:pointer;
+  background:var(--info-bg);color:var(--ink);border:1px solid var(--line);border-radius:8px
+}
+.key:hover{border-color:var(--grid-strong)}
+.tip{color:var(--muted);font-size:.9rem;margin:8px 0 14px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{
+  font:inherit;font-weight:700;cursor:pointer;padding:10px 16px;border-radius:10px;
+  border:2px solid var(--line);background:var(--card);color:var(--ink)
+}
+.btn:hover{border-color:var(--grid-strong)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+
+#feedback{margin-top:16px;min-height:0}
+.msg{border-radius:10px;padding:12px 14px;border:2px solid transparent}
+.msg strong{display:block;margin-bottom:2px}
+.msg.good{background:var(--good-bg);border-color:var(--good);}
+.msg.bad{background:var(--bad-bg);border-color:var(--bad)}
+.msg.info{background:var(--info-bg);border-color:var(--line)}
+.msg .sol{display:block;margin-top:6px;font-size:1.2rem;font-weight:700;overflow-wrap:anywhere}
+
+.stats{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:18px;padding-top:14px;border-top:2px solid var(--line);color:var(--muted)}
+.stats b{color:var(--ink);font-size:1.15rem}
+@media (prefers-reduced-motion:no-preference){
+  .msg{animation:pop .18s ease-out}
+  @keyframes pop{from{transform:translateY(4px);opacity:0}to{transform:none;opacity:1}}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Poznej funkci podle grafu</h1>
+  <p class="lead">Podívej se na graf a do políčka napiš předpis funkce. Uznám jakýkoli správný tvar, třeba <em>y = 2x − 4</em> i <em>y = 2(x − 2)</em>.</p>
+
+  <div class="modes" role="group" aria-label="Typ funkcí">
+    <button class="chip" data-mode="linear" aria-pressed="false">Lineární</button>
+    <button class="chip" data-mode="quadratic" aria-pressed="false">Kvadratická</button>
+    <button class="chip" data-mode="rational" aria-pressed="false">Lineární lomená</button>
+    <button class="chip" data-mode="mix" aria-pressed="true">Všechny dohromady</button>
+  </div>
+
+  <div class="layout">
+    <div class="graph-card">
+      <canvas id="graph" role="img" aria-label="Graf neznámé funkce"></canvas>
+      <div class="legend">
+        <label><input type="checkbox" id="showGuess"> Ukázat graf mého posledního pokusu</label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="task" id="taskText">Jaký předpis má tato funkce?</p>
+      <div class="answer-row">
+        <span class="y" aria-hidden="true">y =</span>
+        <input id="answer" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Předpis funkce, y rovná se" placeholder="např. 2x + 1">
+      </div>
+      <div class="keys" aria-label="Pomocné znaky">
+        <button class="key" data-ins="x">x</button>
+        <button class="key" data-ins="^2">x²</button>
+        <button class="key" data-ins="^">^</button>
+        <button class="key" data-ins="/">/</button>
+        <button class="key" data-ins="(">(</button>
+        <button class="key" data-ins=")">)</button>
+        <button class="key" data-act="back" aria-label="Smazat poslední znak">⌫</button>
+      </div>
+      <p class="tip">Zlomky piš se závorkami: <em>2/(x+1)</em>. Desetinná čárka i tečka fungují.</p>
+
+      <div class="actions">
+        <button class="btn primary" id="checkBtn">Zkontrolovat</button>
+        <button class="btn" id="hintBtn">Nápověda</button>
+        <button class="btn" id="revealBtn">Ukázat řešení</button>
+        <button class="btn" id="nextBtn">Další příklad</button>
+      </div>
+
+      <div id="feedback" aria-live="polite"></div>
+
+      <div class="stats">
+        <span>Vyřešeno <b id="sSolved">0</b></span>
+        <span>Pokusů <b id="sAttempts">0</b></span>
+        <span>Napoprvé v řadě <b id="sStreak">0</b></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $ = id => document.getElementById(id);
+const RANGE = 8;
+
+/* ---------- pomocné funkce ---------- */
+const rnd = n => Math.floor(Math.random()*n);
+const pick = a => a[rnd(a.length)];
+const ri = (lo,hi) => lo + rnd(hi-lo+1);
+
+/* ---------- formátování předpisů ---------- */
+const num = n => String(Math.round(n*100)/100).replace('.',',').replace('-','−');
+function poly(terms){
+  let out = '';
+  for(const [c,suf] of terms){
+    if(c === 0) continue;
+    const abs = Math.abs(c);
+    const body = (suf && abs === 1) ? suf : num(abs) + suf;
+    if(!out) out = (c < 0 ? '−' : '') + body;
+    else out += ' ' + (c < 0 ? '−' : '+') + ' ' + body;
+  }
+  return out || '0';
+}
+const shift = p => p === 0 ? 'x' : 'x ' + (p > 0 ? '−' : '+') + ' ' + Math.abs(p);
+
+/* ---------- generátory příkladů ---------- */
+function makeLinear(){
+  let a,b;
+  do { a = pick([1,-1,2,-2,3,-3,.5,-.5]); b = ri(-4,4); } while(a === 1 && b === 0);
+  const pt2 = Math.abs(2*a+b) <= RANGE ? [2,2*a+b] : [-2,-2*a+b];
+  return {
+    type:'linear', label:'lineární',
+    f: x => a*x + b,
+    solution: 'y = ' + poly([[a,'x'],[b,'']]),
+    helpers: {points:[[0,b], pt2]},
+    hint2: 'Na grafu jsou vyznačeny dva body. Zjisti, kde graf protíná osu y a o kolik se změní y, když x vzroste o 1.'
+  };
+}
+function makeQuadratic(){
+  let a,p,q;
+  do {
+    a = pick([1,-1,2,-2,.5,-.5]);
+    p = Math.abs(a) === .5 ? pick([-4,-2,0,2,4]) : ri(-4,4);
+    q = ri(-4,4);
+  } while(Math.abs(a) === 1 && p === 0 && q === 0);
+  const B = -2*a*p, C = a*p*p + q;
+  const pre = a === 1 ? '' : a === -1 ? '−' : num(a);
+  const sq = p === 0 ? 'x²' : '(' + shift(p) + ')²';
+  const vertex = pre + sq + (q === 0 ? '' : (q > 0 ? ' + ' : ' − ') + Math.abs(q));
+  const expanded = poly([[a,'x²'],[B,'x'],[C,'']]);
+  return {
+    type:'quadratic', label:'kvadratická',
+    f: x => a*(x-p)*(x-p) + q,
+    solution: 'y = ' + (p === 0 ? expanded : vertex + ' = ' + expanded),
+    helpers: {points:[[p,q]], vLine:p},
+    hint2: 'Je vyznačen vrchol paraboly. Zkus tvar y = a(x − p)² + q a zjisti, jak se parabola „rozevírá“.'
+  };
+}
+function makeRational(){
+  const k = pick([1,-1,2,-2,3,-3]);
+  const p = ri(-4,4), q = ri(-4,4);
+  const den = shift(p);
+  const f1 = (p === 0 ? (k < 0 ? '−' : '') + Math.abs(k) + '/x' : num(k) + '/(' + den + ')')
+           + (q === 0 ? '' : (q > 0 ? ' + ' : ' − ') + Math.abs(q));
+  let sol = 'y = ' + f1;
+  if(q !== 0){
+    const numer = poly([[q,'x'],[k - q*p,'']]);
+    sol += ' = (' + numer + ')/' + (p === 0 ? 'x' : '(' + den + ')');
+  }
+  return {
+    type:'rational', label:'lineární lomená',
+    f: x => k/(x-p) + q,
+    solution: sol,
+    helpers: {vAsym:p, hAsym:q},
+    hint2: 'Jsou vyznačeny asymptoty. Zkus tvar y = k/(x − p) + q a zjisti, ve kterých kvadrantech (vůči asymptotám) graf leží.'
+  };
+}
+const MAKERS = {linear:makeLinear, quadratic:makeQuadratic, rational:makeRational};
+
+/* ---------- parser zadaného předpisu (bez eval) ---------- */
+function compile(src){
+  if(src.length > 100) throw new Error('Předpis je příliš dlouhý.');
+  let s = src.toLowerCase().replace(/\s+/g,'')
+    .replace(/[−–—]/g,'-').replace(/[·×]/g,'*').replace(/:/g,'/').replace(/,/g,'.')
+    .replace(/²/g,'^2').replace(/³/g,'^3');
+  s = s.replace(/^(y|f\(x\)|f)=/,'');
+  if(!s) throw new Error('Napiš nějaký předpis.');
+  const toks = [];
+  let i = 0;
+  while(i < s.length){
+    const ch = s[i];
+    const m = /^(\d+(\.\d+)?|\.\d+)/.exec(s.slice(i));
+    if(m){ toks.push({t:'n', v:parseFloat(m[0])}); i += m[0].length; continue; }
+    if(ch === 'x'){ toks.push({t:'x'}); i++; continue; }
+    if('+-*/^()'.includes(ch)){ toks.push({t:ch}); i++; continue; }
+    if(ch === '='){ throw new Error('Znak „=“ napiš jen jednou, na začátku (např. y = 2x + 1).'); }
+    throw new Error('Nerozumím znaku „' + ch + '“. Použij čísla, x, + − * / ^ a závorky.');
+  }
+  let pos = 0;
+  const peek = () => toks[pos] ? toks[pos].t : null;
+  function expr(){
+    let l = term();
+    while(peek() === '+' || peek() === '-'){
+      const op = toks[pos++].t, r = term(), a = l;
+      l = op === '+' ? x => a(x) + r(x) : x => a(x) - r(x);
+    }
+    return l;
+  }
+  function term(){
+    let l = factor();
+    for(;;){
+      const t = peek();
+      if(t === '*' || t === '/'){
+        pos++; const r = factor(), a = l;
+        l = t === '*' ? x => a(x)*r(x) : x => a(x)/r(x);
+      } else if(t === 'n' || t === 'x' || t === '('){
+        const r = factor(), a = l;
+        l = x => a(x)*r(x);
+      } else break;
+    }
+    return l;
+  }
+  function factor(){
+    if(peek() === '-'){ pos++; const f = factor(); return x => -f(x); }
+    if(peek() === '+'){ pos++; return factor(); }
+    return power();
+  }
+  function power(){
+    const b = atom();
+    if(peek() === '^'){ pos++; const e = factor(); return x => Math.pow(b(x), e(x)); }
+    return b;
+  }
+  function atom(){
+    const tk = toks[pos];
+    if(!tk) throw new Error('Předpis je neúplný – na konci něco chybí.');
+    if(tk.t === 'n'){ pos++; const v = tk.v; return () => v; }
+    if(tk.t === 'x'){ pos++; return x => x; }
+    if(tk.t === '('){
+      pos++; const e = expr();
+      if(peek() !== ')') throw new Error('Chybí uzavírací závorka.');
+      pos++; return e;
+    }
+    throw new Error('Na tomto místě nečekám znak „' + tk.t + '“.');
+  }
+  const f = expr();
+  if(pos < toks.length) throw new Error('Nerozumím předpisu – zkontroluj závorky a znaménka.');
+  return f;
+}
+
+/* ---------- porovnání funkcí ---------- */
+const TEST_X = [-7.7,-6.3,-5.1,-4.2,-3.6,-2.9,-2.3,-1.7,-1.2,-.6,-.3,.4,.7,1.3,1.9,2.6,3.2,3.9,4.7,5.5,6.4,7.3]
+  .concat([-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8]);
+function equivalent(target, guess){
+  let valid = 0;
+  for(const x of TEST_X){
+    const t = target(x);
+    if(!isFinite(t)) continue;
+    const g = guess(x);
+    if(!isFinite(g)) return false;
+    if(Math.abs(g - t) > 1e-6*Math.max(1,Math.abs(t))) return false;
+    valid++;
+  }
+  return valid >= 10;
+}
+
+/* ---------- vykreslení grafu ---------- */
+const cv = $('graph'), ctx = cv.getContext('2d');
+function css(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+function draw(){
+  const size = cv.clientWidth;
+  if(!size) return;
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(size*dpr); cv.height = Math.round(size*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const sx = x => (x+RANGE)/(2*RANGE)*size;
+  const sy = y => (RANGE-y)/(2*RANGE)*size;
+  const cGrid = css('--grid'), cStrong = css('--grid-strong'), cAxis = css('--axis'),
+        cCurve = css('--curve'), cGuess = css('--guess'), cAsym = css('--asym'), cCard = css('--card');
+
+  ctx.fillStyle = cCard; ctx.fillRect(0,0,size,size);
+
+  // mřížka
+  ctx.lineWidth = 1;
+  for(let v=-RANGE; v<=RANGE; v++){
+    ctx.strokeStyle = (v % 5 === 0) ? cStrong : cGrid;
+    ctx.beginPath(); ctx.moveTo(sx(v)+.5,0); ctx.lineTo(sx(v)+.5,size); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,sy(v)+.5); ctx.lineTo(size,sy(v)+.5); ctx.stroke();
+  }
+  // osy
+  ctx.strokeStyle = cAxis; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.moveTo(0,sy(0)); ctx.lineTo(size,sy(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx(0),0); ctx.lineTo(sx(0),size); ctx.stroke();
+  // popisky
+  const fs = Math.max(10, Math.min(13, size/38));
+  ctx.fillStyle = cAxis; ctx.font = fs + 'px "Atkinson Hyperlegible", system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for(let v=-RANGE+1; v<RANGE; v++){
+    if(v === 0) continue;
+    ctx.fillText(String(v).replace('-','−'), sx(v), sy(0)+4);
+  }
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for(let v=-RANGE+1; v<RANGE; v++){
+    if(v === 0) continue;
+    ctx.fillText(String(v).replace('-','−'), sx(0)-5, sy(v));
+  }
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText('0', sx(0)-5, sy(0)+4);
+  ctx.font = 'italic bold ' + (fs+2) + 'px "Atkinson Hyperlegible", system-ui, sans-serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('y', sx(0)+8, 16+fs);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('x', size-6, sy(0)-6);
+
+  // ořez na graf
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0,0,size,size); ctx.clip();
+
+  // nápověda: pomocné prvky
+  const H = cur && state.hint >= 2 ? cur.helpers : null;
+  if(H){
+    ctx.strokeStyle = cAsym; ctx.lineWidth = 1.6; ctx.setLineDash([7,6]);
+    const vl = H.vLine !== undefined ? H.vLine : H.vAsym;
+    if(vl !== undefined){ ctx.beginPath(); ctx.moveTo(sx(vl),0); ctx.lineTo(sx(vl),size); ctx.stroke(); }
+    if(H.hAsym !== undefined){ ctx.beginPath(); ctx.moveTo(0,sy(H.hAsym)); ctx.lineTo(size,sy(H.hAsym)); ctx.stroke(); }
+    ctx.setLineDash([]);
+  }
+
+  function plot(f, color, width, dash){
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash || []);
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.beginPath();
+    let pen = false, py = 0;
+    const step = 2*RANGE/ (size*1.2);
+    for(let x=-RANGE; x<=RANGE+1e-9; x+=step){
+      const y = f(x);
+      if(!isFinite(y) || Math.abs(y) > 1e4){ pen = false; continue; }
+      const jump = pen && Math.abs(py) > RANGE*1.5 && Math.abs(y) > RANGE*1.5 && py*y < 0;
+      if(!pen || jump){ ctx.moveTo(sx(x), sy(y)); pen = true; }
+      else ctx.lineTo(sx(x), sy(y));
+      py = y;
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // pokus žáka
+  if(state.showGuess && state.guessFn && !state.done) plot(state.guessFn, cGuess, 2.6, [8,6]);
+  // hledaná funkce
+  if(cur) plot(cur.f, cCurve, 3.2);
+
+  // vyznačené body
+  if(H && H.points){
+    for(const [x,y] of H.points){
+      if(Math.abs(y) > RANGE) continue;
+      ctx.fillStyle = cCard; ctx.strokeStyle = cCurve; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(sx(x), sy(y), 6, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+/* ---------- stav aplikace ---------- */
+let mode = 'mix', cur = null;
+const state = {solved:0, attempts:0, streak:0, hint:0, done:false, taskAttempts:0, guessFn:null, showGuess:false};
+
+function setFeedback(kind, title, body, sol){
+  const box = $('feedback'); box.textContent = '';
+  if(!kind) return;
+  const d = document.createElement('div'); d.className = 'msg ' + kind;
+  if(title){ const s = document.createElement('strong'); s.textContent = title; d.appendChild(s); }
+  if(body){ const p = document.createElement('span'); p.textContent = body; d.appendChild(p); }
+  if(sol){ const e = document.createElement('span'); e.className = 'sol'; e.textContent = sol; d.appendChild(e); }
+  box.appendChild(d);
+}
+function updateStats(){
+  $('sSolved').textContent = state.solved;
+  $('sAttempts').textContent = state.attempts;
+  $('sStreak').textContent = state.streak;
+}
+function lockInput(locked){
+  $('answer').disabled = locked;
+  $('checkBtn').disabled = locked;
+  $('revealBtn').disabled = locked;
+  $('hintBtn').disabled = locked;
+  document.querySelectorAll('.key').forEach(k => k.disabled = locked);
+}
+function newTask(){
+  const type = mode === 'mix' ? pick(['linear','quadratic','rational']) : mode;
+  cur = MAKERS[type]();
+  state.hint = 0; state.done = false; state.taskAttempts = 0; state.guessFn = null;
+  $('answer').value = '';
+  $('taskText').textContent = 'Jaký předpis má tato funkce?';
+  setFeedback(null);
+  lockInput(false);
+  draw();
+  $('answer').focus({preventScroll:true});
+}
+
+/* ---------- akce ---------- */
+function check(){
+  const text = $('answer').value;
+  let g;
+  try { g = compile(text); }
+  catch(e){ setFeedback('info','Tomu nerozumím', e.message); return; }
+  state.attempts++; state.taskAttempts++;
+  state.guessFn = g;
+  if(equivalent(cur.f, g)){
+    state.done = true; state.solved++;
+    state.streak = state.taskAttempts === 1 ? state.streak + 1 : 0;
+    setFeedback('good', 'Správně!', 'Funkce je ' + cur.label + '. Předpis, který jsem měl připravený:', cur.solution);
+    lockInput(true);
+    $('nextBtn').focus({preventScroll:true});
+  } else {
+    state.streak = 0;
+    let extra = '';
+    const t0 = cur.f(0), g0 = g(0);
+    if(isFinite(t0) && isFinite(g0) && Math.abs(t0-g0) < 1e-6) extra = ' Hodnotu pro x = 0 ale máš dobře.';
+    setFeedback('bad', 'Zatím to nesedí.', 'Porovnej svůj předpis s grafem a zkus to znovu.' + extra);
+  }
+  updateStats(); draw();
+}
+function hint(){
+  if(state.hint === 0){
+    state.hint = 1;
+    setFeedback('info','Nápověda 1','Hledáš funkci ' + cur.label + '.');
+  } else if(state.hint === 1){
+    state.hint = 2;
+    setFeedback('info','Nápověda 2', cur.hint2);
+    draw();
+  } else {
+    setFeedback('info','Nápověda', cur.hint2 + ' Další nápovědu už nemám, můžeš si ukázat řešení.');
+  }
+}
+function reveal(){
+  state.done = true; state.streak = 0;
+  setFeedback('info','Řešení', 'Funkce je ' + cur.label + ':', cur.solution);
+  lockInput(true); updateStats(); draw();
+  $('nextBtn').focus({preventScroll:true});
+}
+
+/* ---------- události ---------- */
+document.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
+  mode = b.dataset.mode;
+  document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', String(c === b)));
+  newTask();
+}));
+$('checkBtn').addEventListener('click', check);
+$('hintBtn').addEventListener('click', hint);
+$('revealBtn').addEventListener('click', reveal);
+$('nextBtn').addEventListener('click', newTask);
+$('showGuess').addEventListener('change', e => { state.showGuess = e.target.checked; draw(); });
+$('answer').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); check(); } });
+document.addEventListener('keydown', e => {
+  if(e.key === 'Enter' && state.done && document.activeElement === document.body) newTask();
+});
+document.querySelectorAll('.key').forEach(k => k.addEventListener('click', () => {
+  const inp = $('answer'); inp.focus();
+  if(k.dataset.act === 'back'){
+    const s = inp.selectionStart, e = inp.selectionEnd;
+    if(s !== e){ inp.setRangeText('', s, e, 'end'); }
+    else if(s > 0){ inp.setRangeText('', s-1, s, 'end'); }
+    return;
+  }
+  const s = inp.selectionStart, e = inp.selectionEnd;
+  inp.setRangeText(k.dataset.ins, s, e, 'end');
+}));
+
+if('ResizeObserver' in window) new ResizeObserver(draw).observe(cv);
+else window.addEventListener('resize', draw);
+if(window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+
+newTask();
+})();
+</script>
+</body>
+</html>
