@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vrcholový a obecný tvar kvadratické funkce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#e8eef5; --card:#fbfdff; --ink:#14213d; --muted:#586a82; --line:#cddbe8;
+  --accent:#0b4fd6; --accent-ink:#ffffff; --accent-soft:#e3ecfd;
+  --good:#16794a; --good-bg:#e1f4ea; --bad:#b3261e; --bad-bg:#fcebe9; --info-bg:#eef3fa;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1520; --card:#142030; --ink:#e7eef7; --muted:#9db0c6; --line:#27394e;
+    --accent:#6ea6ff; --accent-ink:#0a1626; --accent-soft:#1c2f4b;
+    --good:#5fd39a; --good-bg:#123324; --bad:#ff8d85; --bad-bg:#3a1a1a; --info-bg:#182a3f;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1520; --card:#142030; --ink:#e7eef7; --muted:#9db0c6; --line:#27394e;
+  --accent:#6ea6ff; --accent-ink:#0a1626; --accent-soft:#1c2f4b;
+  --good:#5fd39a; --good-bg:#123324; --bad:#ff8d85; --bad-bg:#3a1a1a; --info-bg:#182a3f;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{margin:0}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  font-size:17px;line-height:1.45;
+}
+.wrap{max-width:900px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:clamp(1.5rem,3.5vw,2.1rem);line-height:1.15;margin:0 0 6px;letter-spacing:-.01em}
+.lead{margin:0 0 18px;color:var(--muted);max-width:62ch}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.dirs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+@media (max-width:560px){.dirs{grid-template-columns:1fr}}
+.dir{
+  font:inherit;font-weight:700;font-size:1.05rem;cursor:pointer;text-align:center;
+  border:2px solid var(--line);background:var(--card);color:var(--ink);padding:12px 14px;border-radius:12px
+}
+.dir:hover{border-color:var(--muted)}
+.dir[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:18px}
+.chip{font:inherit;font-weight:700;cursor:pointer;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:999px}
+.chip:hover{border-color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.spacer{flex:1}
+.btn{font:inherit;font-weight:700;cursor:pointer;padding:10px 16px;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+
+.task{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:14px}
+.task .cap{color:var(--muted);margin:0 0 6px}
+.formula{font-size:clamp(1.7rem,5vw,2.5rem);font-weight:700;letter-spacing:.01em;overflow-wrap:anywhere}
+.target{margin:8px 0 0;color:var(--muted)}
+
+.cheat{background:var(--info-bg);border:2px solid var(--line);border-radius:14px;padding:12px 18px;margin-bottom:18px}
+.cheat summary{cursor:pointer;font-weight:700}
+.cheat p{margin:8px 0 0}
+.cheat .eq{font-size:1.15rem;font-weight:700}
+[hidden]{display:none !important}
+
+.steps{display:flex;flex-direction:column;gap:12px}
+.step{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:14px 18px}
+.step h2{font-size:1.05rem;margin:0;display:flex;gap:10px;align-items:baseline}
+.step .n{display:inline-grid;place-items:center;min-width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:.95rem}
+.step.locked{opacity:.55;background:transparent;border-style:dashed}
+.step.done{border-color:var(--good)}
+.step.done .n{background:var(--good);color:var(--accent-ink)}
+.step.active{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.intro{margin:8px 0 12px}
+.line{font-size:1.3rem;font-weight:700;margin:10px 0 0;overflow-wrap:anywhere}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 4px;font-size:1.3rem;font-weight:700;margin:6px 0 12px}
+.row input{
+  font:inherit;font-size:1.25rem;width:3.6em;text-align:center;padding:6px 4px;
+  color:var(--ink);background:var(--card);border:2px solid var(--line);border-radius:8px;margin:0 2px
+}
+.row input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.row input.ok{border-color:var(--good);background:var(--good-bg)}
+.row input.bad{border-color:var(--bad);background:var(--bad-bg)}
+.small{color:var(--muted);font-size:.9rem;margin:0 0 12px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.msg{border-radius:10px;padding:10px 14px;border:2px solid transparent;margin-top:12px}
+.msg.bad{background:var(--bad-bg);border-color:var(--bad)}
+.msg.info{background:var(--info-bg);border-color:var(--line)}
+.msg div+div{margin-top:4px}
+.result{background:var(--good-bg);border:2px solid var(--good);border-radius:14px;padding:16px 20px}
+.result .formula{margin:4px 0 6px}
+.result p{margin:0 0 12px}
+.stats{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:20px;padding-top:14px;border-top:2px solid var(--line);color:var(--muted)}
+.stats b{color:var(--ink);font-size:1.15rem}
+@media (prefers-reduced-motion:no-preference){
+  .step.active,.result{animation:pop .18s ease-out}
+  @keyframes pop{from{transform:translateY(4px);opacity:0}to{transform:none;opacity:1}}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Vrcholový a obecný tvar</h1>
+  <p class="lead" id="lead"></p>
+
+  <div class="dirs" role="group" aria-label="Směr převodu">
+    <button class="dir" data-dir="toGeneral" aria-pressed="true">Vrcholový → obecný</button>
+    <button class="dir" data-dir="toVertex" aria-pressed="false">Obecný → vrcholový</button>
+  </div>
+
+  <div class="toolbar">
+    <div role="group" aria-label="Obtížnost" style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="chip" data-level="easy" aria-pressed="false">Lehké (a = 1)</button>
+      <button class="chip" data-level="mid" aria-pressed="true">Střední (a = 2 nebo 3)</button>
+      <button class="chip" data-level="hard" aria-pressed="false">Těžší (a i záporné)</button>
+    </div>
+    <span class="spacer"></span>
+    <button class="btn" id="newBtn">Jiný příklad</button>
+  </div>
+
+  <div class="task">
+    <p class="cap" id="taskCap"></p>
+    <div class="formula" id="taskFormula"></div>
+    <p class="target" id="taskTarget"></p>
+  </div>
+
+  <details class="cheat">
+    <summary>Vzorec k použití</summary>
+    <div data-cheat="toGeneral">
+      <p class="eq">(x + s)² = x² + 2s·x + s²</p>
+      <p>Pozor na znaménko: v závorce <em>x − 3</em> je s = −3, v závorce <em>x + 3</em> je s = 3.</p>
+    </div>
+    <div data-cheat="toVertex" hidden>
+      <p class="eq">x² + k·x = (x + k/2)² − (k/2)²</p>
+      <p>Číslo k je to, které stojí u x. Polovina k se píše do závorky i se znaménkem, její druhá mocnina se odečítá.</p>
+    </div>
+  </details>
+
+  <div class="steps" id="steps"></div>
+
+  <div class="stats">
+    <span>Vyřešeno <b id="sSolved">0</b></span>
+    <span>Chybných kontrol <b id="sMist">0</b></span>
+    <span>Úplně bez chyby <b id="sClean">0</b></span>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $ = id => document.getElementById(id);
+const rnd = n => Math.floor(Math.random()*n);
+const pick = a => a[rnd(a.length)];
+const ri = (lo,hi) => lo + rnd(hi-lo+1);
+
+/* ---------- formátování ---------- */
+const num = n => String(Math.round(n*100)/100).replace('.',',').replace('-','−');
+const pn = n => n < 0 ? '(' + num(n) + ')' : num(n);
+function poly(terms){
+  let out = '';
+  for(const [c,suf] of terms){
+    if(c === 0) continue;
+    const abs = Math.abs(c);
+    const body = (suf && abs === 1) ? suf : num(abs) + suf;
+    if(!out) out = (c < 0 ? '−' : '') + body;
+    else out += ' ' + (c < 0 ? '−' : '+') + ' ' + body;
+  }
+  return out || '0';
+}
+const shift = p => 'x ' + (p > 0 ? '−' : '+') + ' ' + Math.abs(p);
+const sgn = n => ' ' + (n < 0 ? '−' : '+') + ' ' + num(Math.abs(n));   // " + 5" / " − 5"
+const preOf = a => a === 1 ? '' : a === -1 ? '−' : num(a);
+function parseNum(s){
+  s = s.replace(/\s+/g,'').replace(/[−–—]/g,'-').replace(',','.');
+  if(!/^[+-]?(\d+(\.\d+)?|\.\d+)$/.test(s)) return null;
+  return parseFloat(s);
+}
+
+/* ---------- příklad ---------- */
+let dir = 'toGeneral', level = 'mid', T = null, steps = [];
+let stepIdx = 0, wrongCount = 0, taskMistakes = 0, assisted = false;
+const stats = {solved:0, mistakes:0, clean:0};
+
+function makeTask(){
+  const sets = {easy:[1], mid:[2,3], hard:[1,-1,2,-2,3,-3]};
+  const a = pick(sets[level]);
+  let p, q, c;
+  do {
+    p = ri(-5,5); q = ri(-6,6); c = a*p*p + q;
+  } while(p === 0 || q === 0 || c === 0);
+  const b = -2*a*p;
+  return {a,p,q,b,c};
+}
+
+/* ---------- vrcholový → obecný ---------- */
+function stepsToGeneral(t){
+  const {a,p,q} = t;
+  const s = -p, b1 = 2*s, c1 = s*s, A = a, B = a*b1, C1 = a*c1, C = C1 + q;
+  const sq = poly([[1,'x²'],[b1,'x'],[c1,'']]);
+  const s1left = '(' + shift(p) + ')² = ';
+  const s2left = num(a) + ' · (' + sq + ') = ';
+  const lin3 = poly([[A,'x²'],[B,'x'],[C1,'']]);
+  const s3left = lin3 + ' ' + (q > 0 ? '+' : '−') + ' ' + Math.abs(q) + ' = ';
+  return {
+    cap:'Převeď na obecný tvar:',
+    formula:'y = ' + preOf(a) + '(' + shift(p) + ')² ' + (q > 0 ? '+' : '−') + ' ' + Math.abs(q),
+    target:'Cíl: y = ax² + bx + c',
+    result:'y = ' + poly([[A,'x²'],[B,'x'],[C,'']]),
+    resultNote:'a = ' + num(A) + ', b = ' + num(B) + ', c = ' + num(C),
+    steps:[
+      {
+        title:'Umocni závorku',
+        intro:'Dosaď do vzorce (x + s)² = x² + 2s·x + s². V závorce je ' + shift(p) + ', takže s = ' + num(s) + '.',
+        parts:[s1left + 'x² + ', 0, 'x + ', 1],
+        done: s1left + sq,
+        fields:[
+          {exp:b1, lab:'u x', h1:'Je to 2s, tedy dvojnásobek čísla s.', h2:'2 · ' + pn(s) + ' = ' + num(b1)},
+          {exp:c1, lab:'bez x', h1:'Je to s², druhá mocnina čísla s. Vyjde vždy kladné číslo.', h2:pn(s) + '² = ' + num(c1)}
+        ]
+      },
+      {
+        title:'Vynásob číslem a',
+        intro:'Celou závorku vynásob číslem a = ' + num(a) + '. Násobíš každý člen zvlášť, i x² (to má před sebou skrytou jedničku).',
+        parts:[s2left, 0, 'x² + ', 1, 'x + ', 2],
+        done: s2left + lin3,
+        fields:[
+          {exp:A, lab:'u x²', h1:'Vynásob jedničku před x² číslem a.', h2:num(a) + ' · 1 = ' + num(A)},
+          {exp:B, lab:'u x', h1:'Vynásob číslem a koeficient u x z kroku 1.', h2:num(a) + ' · ' + pn(b1) + ' = ' + num(B)},
+          {exp:C1, lab:'bez x', h1:'Vynásob číslem a číslo bez x z kroku 1.', h2:num(a) + ' · ' + num(c1) + ' = ' + num(C1)}
+        ]
+      },
+      {
+        title:'Přičti číslo q',
+        intro:'Nakonec přičti q = ' + num(q) + '. Přičítá se jen k číslu bez x, ostatní členy opiš.',
+        parts:[s3left + poly([[A,'x²'],[B,'x']]) + ' + ', 0],
+        done: s3left + poly([[A,'x²'],[B,'x'],[C,'']]),
+        fields:[
+          {exp:C, lab:'bez x', h1:'Sečti číslo bez x z kroku 2 s číslem q. Dej pozor na znaménka.', h2:num(C1) + ' + ' + pn(q) + ' = ' + num(C)}
+        ]
+      }
+    ]
+  };
+}
+
+/* ---------- obecný → vrcholový (doplnění na čtverec) ---------- */
+function stepsToVertex(t){
+  const {a,p,q,b,c} = t;
+  const k = b / a;          // číslo u x po vytknutí a
+  const h = k / 2;          // polovina k
+  const h2 = h * h;         // druhá mocnina poloviny
+  const m = -a * h2;        // a · (−h²)
+  const pre = preOf(a);
+  const vf = pre + '(' + shift(p) + ')²';
+  const cT = sgn(c);
+  const gen = poly([[a,'x²'],[b,'x'],[c,'']]);
+  const kq = poly([[1,'x²'],[k,'x']]);
+  const l1 = gen + ' = ';
+  const l2 = kq + ' = ';
+  const l3 = pre + '((' + shift(p) + ')² − ' + num(h2) + ')' + cT + ' = ';
+  const l4 = vf + sgn(m) + cT + ' = ';
+  return {
+    cap:'Převeď na vrcholový tvar:',
+    formula:'y = ' + gen,
+    target:'Cíl: y = a(x − p)² + q',
+    result:'y = ' + vf + sgn(q),
+    resultNote:'a = ' + num(a) + ', p = ' + num(p) + ', q = ' + num(q) + '. Vrchol paraboly je V[' + num(p) + '; ' + num(q) + '].',
+    steps:[
+      {
+        title:'Vytkni číslo a',
+        intro:'Z členů s x² a x vytkni a = ' + num(a) + '. Člen bez x (' + num(c) + ') necháš stranou. Číslo u x vydělíš číslem a.',
+        parts:[l1 + pre + '(x² + ', 0, 'x)' + cT],
+        done: l1 + pre + '(' + kq + ')' + cT,
+        fields:[
+          {exp:k, lab:'u x', h1:'Vyděl číslo u x číslem a.', h2:num(b) + ' : ' + pn(a) + ' = ' + num(k)}
+        ]
+      },
+      {
+        title:'Doplň na čtverec',
+        intro:'V závorce je ' + kq + '. Použij vzorec x² + k·x = (x + k/2)² − (k/2)², kde k = ' + num(k) + '.',
+        parts:[l2 + '(x + ', 0, ')² − ', 1],
+        done: l2 + '(' + shift(p) + ')² − ' + num(h2),
+        fields:[
+          {exp:h, lab:'v závorce', h1:'Je to polovina čísla k i se znaménkem.', h2:pn(k) + ' : 2 = ' + num(h)},
+          {exp:h2, lab:'za závorkou', h1:'Je to druhá mocnina poloviny k. Odečítá se, proto napiš kladné číslo.', h2:pn(h) + '² = ' + num(h2)}
+        ]
+      },
+      {
+        title:'Vynásob závorku číslem a',
+        intro:'Teď vynásob číslem a = ' + num(a) + ' to, co stojí v hranaté části vedle čtverce, tedy číslo −' + num(h2) + '. Čtverec (' + shift(p) + ')² jen opiš.',
+        parts:[l3 + vf + ' + ', 0, cT],
+        done: l3 + vf + sgn(m) + cT,
+        fields:[
+          {exp:m, lab:'za čtvercem', h1:'Vynásob číslem a číslo −' + num(h2) + ' včetně znaménka.', h2:num(a) + ' · ' + pn(-h2) + ' = ' + num(m)}
+        ]
+      },
+      {
+        title:'Sečti čísla bez x',
+        intro:'Zbývají dvě čísla bez x. Sečti je, dostaneš q.',
+        parts:[l4 + vf + ' + ', 0],
+        done: l4 + vf + sgn(q),
+        fields:[
+          {exp:q, lab:'za čtvercem', h1:'Sečti obě čísla bez x. Dej pozor na znaménka.', h2:num(m) + ' + ' + pn(c) + ' = ' + num(q)}
+        ]
+      }
+    ]
+  };
+}
+
+/* ---------- vykreslení ---------- */
+const stepsBox = $('steps');
+function el(tag, cls, text){ const e = document.createElement(tag); if(cls) e.className = cls; if(text !== undefined) e.textContent = text; return e; }
+
+function render(){
+  stepsBox.textContent = '';
+  steps.forEach((st, i) => {
+    const state = i < stepIdx ? 'done' : (i === stepIdx ? 'active' : 'locked');
+    const card = el('section', 'step ' + state);
+    const h = el('h2'); h.appendChild(el('span','n', i < stepIdx ? '✓' : String(i+1))); h.appendChild(el('span','',st.title));
+    card.appendChild(h);
+    if(state === 'done'){
+      card.appendChild(el('p','line', st.done));
+    } else if(state === 'active'){
+      card.appendChild(el('p','intro', st.intro));
+      const row = el('div','row');
+      st.parts.forEach(p => {
+        if(typeof p === 'string'){ row.appendChild(document.createTextNode(p)); }
+        else {
+          const inp = document.createElement('input');
+          inp.type = 'text'; inp.inputMode = 'text'; inp.autocomplete = 'off'; inp.autocapitalize = 'off'; inp.spellcheck = false;
+          inp.dataset.f = p; inp.setAttribute('aria-label', 'Číslo ' + st.fields[p].lab);
+          inp.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); check(); } });
+          inp.addEventListener('input', () => inp.classList.remove('ok','bad'));
+          row.appendChild(inp);
+        }
+      });
+      card.appendChild(row);
+      card.appendChild(el('p','small','Čísla piš včetně znaménka, třeba −6. Pokud je číslo kladné, znaménko nepiš.'));
+      const act = el('div','actions');
+      const b1 = el('button','btn primary','Zkontrolovat krok'); b1.addEventListener('click', check);
+      const b2 = el('button','btn','Ukázat tento krok'); b2.addEventListener('click', revealStep);
+      act.appendChild(b1); act.appendChild(b2); card.appendChild(act);
+      const fb = el('div'); fb.id = 'feedback'; fb.setAttribute('aria-live','polite'); card.appendChild(fb);
+    }
+    stepsBox.appendChild(card);
+  });
+  if(stepIdx >= steps.length){
+    const r = el('div','result');
+    r.appendChild(el('p','', dir === 'toGeneral' ? 'Hotovo. Obecný tvar funkce je:' : 'Hotovo. Vrcholový tvar funkce je:'));
+    r.appendChild(el('div','formula', T.view.result));
+    r.appendChild(el('p','', T.view.resultNote
+      + (taskMistakes === 0 && !assisted ? ' Bez jediné chyby.' : assisted ? ' Něco jsi nechal ukázat, zkus další příklad sám.' : ' Příště zkus projít všechny kroky bez chyby.')));
+    const nb = el('button','btn primary','Další příklad'); nb.addEventListener('click', newTask);
+    r.appendChild(nb);
+    stepsBox.appendChild(r);
+    nb.focus({preventScroll:true});
+  } else {
+    const first = stepsBox.querySelector('.step.active input');
+    if(first) first.focus({preventScroll:true});
+  }
+}
+
+function feedback(kind, lines){
+  const box = $('feedback'); if(!box) return;
+  box.textContent = '';
+  if(!kind) return;
+  const m = el('div','msg ' + kind);
+  lines.forEach(l => m.appendChild(el('div','',l)));
+  box.appendChild(m);
+}
+function updateStats(){
+  $('sSolved').textContent = stats.solved;
+  $('sMist').textContent = stats.mistakes;
+  $('sClean').textContent = stats.clean;
+}
+
+/* ---------- logika kroků ---------- */
+function advance(){
+  stepIdx++; wrongCount = 0;
+  if(stepIdx >= steps.length){
+    stats.solved++;
+    if(taskMistakes === 0 && !assisted) stats.clean++;
+    updateStats();
+  }
+  render();
+}
+function check(){
+  const st = steps[stepIdx]; if(!st) return;
+  const inputs = stepsBox.querySelectorAll('.step.active input');
+  let empty = false; const bad = [];
+  inputs.forEach(inp => {
+    const f = st.fields[+inp.dataset.f];
+    const v = parseNum(inp.value);
+    if(v === null){ empty = true; inp.classList.remove('ok'); inp.classList.add('bad'); return; }
+    const good = Math.abs(v - f.exp) < 1e-9;
+    inp.classList.toggle('ok', good); inp.classList.toggle('bad', !good);
+    if(!good) bad.push({f, v});
+  });
+  if(empty){ feedback('info', ['Doplň všechna políčka čísly. Záporné číslo začni znaménkem mínus.']); return; }
+  if(!bad.length){ advance(); return; }
+  wrongCount++; taskMistakes++; stats.mistakes++; updateStats();
+  const lines = bad.map(({f,v}) => {
+    const flip = f.exp !== 0 && Math.abs(v + f.exp) < 1e-9 ? 'Číslo sedí, ale má opačné znaménko. ' : '';
+    return 'Políčko ' + f.lab + ': ' + flip + (wrongCount === 1 ? f.h1 : 'Výpočet: ' + f.h2);
+  });
+  if(wrongCount === 1) lines.push('Zkus to opravit. Při druhém pokusu ti ukážu celý výpočet.');
+  feedback('bad', lines);
+}
+function revealStep(){
+  if(!steps[stepIdx]) return;
+  assisted = true;
+  advance();
+}
+
+/* ---------- start ---------- */
+function applyDirUI(){
+  $('lead').textContent = dir === 'toGeneral'
+    ? 'Převod funkce y = a(x − p)² + q na tvar y = ax² + bx + c ve třech krocích. Každý krok se kontroluje zvlášť.'
+    : 'Převod funkce y = ax² + bx + c na tvar y = a(x − p)² + q doplněním na čtverec, ve čtyřech krocích. Každý krok se kontroluje zvlášť.';
+  document.querySelectorAll('[data-cheat]').forEach(d => { d.hidden = d.dataset.cheat !== dir; });
+  document.querySelectorAll('.dir').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.dir === dir)));
+}
+function newTask(){
+  const t = makeTask();
+  const view = dir === 'toGeneral' ? stepsToGeneral(t) : stepsToVertex(t);
+  T = {t, view}; steps = view.steps;
+  stepIdx = 0; wrongCount = 0; taskMistakes = 0; assisted = false;
+  $('taskCap').textContent = view.cap;
+  $('taskFormula').textContent = view.formula;
+  $('taskTarget').textContent = view.target;
+  applyDirUI();
+  render();
+}
+document.querySelectorAll('.dir').forEach(b => b.addEventListener('click', () => {
+  if(dir === b.dataset.dir) return;
+  dir = b.dataset.dir; newTask();
+}));
+document.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
+  level = b.dataset.level;
+  document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', String(c === b)));
+  newTask();
+}));
+$('newBtn').addEventListener('click', newTask);
+updateStats();
+newTask();
+})();
+</script>
+</body>
+</html>
