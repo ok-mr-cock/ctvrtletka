@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trénink vlastností funkcí</title>
+<style>
+  :root { --navy:#183153; --blue:#2457c5; --pale:#eef3ff; --ink:#1c2635; --muted:#5d6b80; --line:#d9e1ee; --green:#147d4b; --red:#b42335; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#f4f7fc; color:var(--ink); font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; line-height:1.5; }
+  header { background:linear-gradient(120deg,#17345d,#2457c5); color:white; padding:28px 18px 32px; }
+  header .inner, main { max-width:1000px; margin:0 auto; }
+  h1 { margin:0 0 6px; font-size:clamp(1.7rem,4vw,2.4rem); }
+  header p { margin:0; color:#e5edff; }
+  main { padding:22px 16px 48px; }
+  .layout { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr); gap:18px; align-items:start; }
+  .card { background:white; border:1px solid var(--line); border-radius:18px; padding:20px; box-shadow:0 5px 18px #1831530a; }
+  .topline { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:12px; }
+  .pill { background:var(--pale); color:#21458c; border-radius:999px; padding:5px 11px; font-weight:700; font-size:.9rem; }
+  .muted { color:var(--muted); }
+  #graph { display:block; width:100%; height:auto; background:#fff; border:1px solid #e4eaf3; border-radius:12px; }
+  .question { font-size:1.13rem; font-weight:750; margin:0 0 12px; }
+  .choices { display:grid; gap:9px; }
+  .choice { display:flex; align-items:flex-start; gap:10px; border:1px solid var(--line); border-radius:11px; padding:11px 12px; cursor:pointer; background:#fff; }
+  .choice:hover { border-color:#7c9ce5; background:#f8faff; }
+  .choice input { margin-top:5px; accent-color:var(--blue); }
+  .choice:has(input:checked) { border-color:var(--blue); background:#f0f5ff; }
+  .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+  button { border:0; border-radius:10px; padding:11px 16px; font:inherit; font-weight:700; cursor:pointer; }
+  button:focus-visible, input:focus-visible { outline:3px solid #93b4ff; outline-offset:2px; }
+  .primary { background:var(--blue); color:white; }
+  .primary:hover { background:#1947aa; }
+  .secondary { background:#e9eef7; color:#24364f; }
+  .secondary:hover { background:#dce5f3; }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  #feedback { margin-top:14px; border-radius:11px; padding:12px 14px; display:none; }
+  #feedback.good { display:block; color:#125d39; background:#e7f7ee; border:1px solid #b8e8cb; }
+  #feedback.bad { display:block; color:#8b1e2c; background:#fff0f1; border:1px solid #f4c5cb; }
+  #feedback.neutral { display:block; color:#28456f; background:#eef4ff; border:1px solid #cbdcff; }
+  .score { font-size:1.1rem; font-weight:800; }
+  .progress { height:8px; border-radius:99px; background:#e6ebf4; overflow:hidden; margin:10px 0 16px; }
+  #bar { height:100%; width:0; background:#3974e8; transition:width .2s; }
+  .tip { background:#f8faff; border-left:4px solid #7b9eea; padding:12px 14px; border-radius:0 10px 10px 0; font-size:.95rem; }
+  details { margin-top:14px; }
+  summary { cursor:pointer; font-weight:750; }
+  ul { padding-left:21px; }
+  .small { font-size:.9rem; }
+  @media (max-width:760px) { .layout { grid-template-columns:1fr; } .card { padding:16px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="inner">
+    <h1>Jaké vlastnosti má funkce?</h1>
+    <p>Procvič si monotónnost a konvexitu podle grafu.</p>
+  </div>
+</header>
+<main>
+  <div class="layout">
+    <section class="card">
+      <div class="topline">
+        <span class="pill" id="taskNo">Úloha 1</span>
+        <span class="muted small" id="category">Vlastnosti funkce</span>
+      </div>
+      <svg id="graph" viewBox="0 0 600 390" role="img" aria-label="Graf funkce v souřadnicové soustavě"></svg>
+      <p class="muted small">Posuzuj vlastnosti na celém zobrazeném intervalu.</p>
+      <div class="tip">
+        <strong>Připomenutí:</strong> „neklesající“ dovoluje vodorovné úseky, zatímco „rostoucí“ znamená, že s větším x má funkce vždy větší hodnotu. Podobně „nerostoucí“ dovoluje vodorovné úseky.
+      </div>
+    </section>
+    <section class="card">
+      <div class="topline">
+        <span class="pill">Tvoje odpověď</span>
+        <span class="score" id="score">0 / 0</span>
+      </div>
+      <div class="progress" aria-label="Postup"><div id="bar"></div></div>
+      <p class="question" id="prompt">Jaká je monotónnost funkce?</p>
+      <form id="answerForm">
+        <div class="choices" id="choices"></div>
+        <div class="actions">
+          <button class="primary" id="checkBtn" type="submit">Zkontrolovat</button>
+          <button class="secondary" id="nextBtn" type="button" disabled>Další graf →</button>
+        </div>
+      </form>
+      <div id="feedback" aria-live="polite"></div>
+      <details>
+        <summary>Jak poznat konvexitu a konkávitu?</summary>
+        <ul>
+          <li><strong>Konvexní:</strong> graf se „otevírá nahoru“; směrnice se při pohybu doprava nezmenšuje.</li>
+          <li><strong>Ryze konvexní:</strong> zakřivení je důsledně směrem nahoru, bez přímých úseků.</li>
+          <li><strong>Konkávní:</strong> graf se „otevírá dolů“; směrnice se při pohybu doprava nezvětšuje.</li>
+          <li><strong>Ryze konkávní:</strong> zakřivení je důsledně směrem dolů, bez přímých úseků.</li>
+          <li>Pokud se typ zakřivení na intervalu mění, funkce tam není ani konvexní, ani konkávní.</li>
+        </ul>
+        <p class="muted small">Ve školní matematice se někdy používá také označení „konkávní“ jako „konkávní dolů“; řiď se definicemi používanými ve své třídě.</p>
+      </details>
+    </section>
+  </div>
+</main>
+<script>
+(() => {
+  const tasks = [
+    {name:"Přímka vzhůru", f:x=>x, mono:"strictUp", shape:"bothFlat", description:"Přímka s kladným sklonem."},
+    {name:"Přímka dolů", f:x=>-x, mono:"strictDown", shape:"bothFlat", description:"Přímka se záporným sklonem."},
+    {name:"Konstantní funkce", f:x=>0.5, mono:"bothFlat", shape:"bothFlat", description:"Vodorovná přímka."},
+    {name:"Parabola otevřená nahoru", f:x=>0.42*x*x-1, mono:"neither", shape:"strictConvex", description:"Parabola s minimem."},
+    {name:"Parabola otevřená dolů", f:x=>-0.42*x*x+1, mono:"neither", shape:"strictConcave", description:"Parabola s maximem."},
+    {name:"Funkce s vodorovným úsekem", f:x=> x < -0.7 ? x+1.4 : (x < 0.7 ? 0.7 : x), mono:"nondecreasing", shape:"neither", description:"Funkce roste, chvíli je konstantní a pak opět roste."},
+    {name:"Klesající s vodorovným úsekem", f:x=> x < -0.7 ? -x-0.7 : (x < 0.7 ? 0 : -x+0.7), mono:"nonincreasing", shape:"neither", description:"Funkce klesá, chvíli je konstantní a pak opět klesá."},
+    {name:"Kubická funkce", f:x=>0.13*x*x*x, mono:"strictUp", shape:"neither", description:"Roste, ale její zakřivení se mění."},
+    {name:"V-tvar", f:x=>0.55*Math.abs(x)-0.5, mono:"neither", shape:"convex", description:"Lomená čára ve tvaru písmene V."},
+    {name:"Obrácené V", f:x=>-0.55*Math.abs(x)+0.7, mono:"neither", shape:"concave", description:"Lomená čára ve tvaru obráceného V."},
+    {name:"Rostoucí část paraboly", f:x=>0.12*(x+5)*(x+5)-1, mono:"strictUp", shape:"strictConvex", description:"Vrchol leží vlevo mimo zobrazený interval."},
+    {name:"Klesající část paraboly", f:x=>-0.12*(x-5)*(x-5)+1, mono:"strictDown", shape:"strictConcave", description:"Vrchol leží vpravo mimo zobrazený interval."}
+  ];
+  const monoOptions = [
+    ["strictUp","Rostoucí"],
+    ["nondecreasing","Neklesající, ale ne rostoucí"],
+    ["strictDown","Klesající"],
+    ["nonincreasing","Nerostoucí, ale ne klesající"],
+    ["bothFlat","Konstantní (rostoucí i klesající v neostrém smyslu)"],
+    ["neither","Není ani neklesající, ani nerostoucí"]
+  ];
+  const shapeOptions = [
+    ["strictConvex","Ryze konvexní"],
+    ["convex","Konvexní, ale ne ryze konvexní"],
+    ["strictConcave","Ryze konkávní"],
+    ["concave","Konkávní, ale ne ryze konkávní"],
+    ["bothFlat","Zároveň konvexní i konkávní (přímka)"],
+    ["neither","Není ani konvexní, ani konkávní"]
+  ];
+  let order = [], index = 0, score = 0, answered = false;
+  const svg = document.getElementById("graph");
+  const choices = document.getElementById("choices");
+  const prompt = document.getElementById("prompt");
+  const feedback = document.getElementById("feedback");
+  const checkBtn = document.getElementById("checkBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const scoreEl = document.getElementById("score");
+  const bar = document.getElementById("bar");
+  const taskNo = document.getElementById("taskNo");
+  const category = document.getElementById("category");
+  const form = document.getElementById("answerForm");
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs={}) {
+    const n = document.createElementNS(NS, tag);
+    Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,v));
+    return n;
+  }
+  function draw(t) {
+    svg.innerHTML = "";
+    const W=600,H=390, L=48,R=20,T=20,B=38, pw=W-L-R, ph=H-T-B;
+    const xmin=-4,xmax=4,ymin=-3,ymax=3;
+    const X=x=>L+(x-xmin)/(xmax-xmin)*pw;
+    const Y=y=>T+(ymax-y)/(ymax-ymin)*ph;
+    for(let x=-4;x<=4;x++) {
+      svg.appendChild(el("line",{x1:X(x),y1:T,x2:X(x),y2:H-B,stroke:"#e8edf5","stroke-width":1}));
+      if(x!==0) { const tx=el("text",{x:X(x),y:H-B+18,"text-anchor":"middle",fill:"#66758b","font-size":12}); tx.textContent=x; svg.appendChild(tx); }
+    }
+    for(let y=-3;y<=3;y++) {
+      svg.appendChild(el("line",{x1:L,y1:Y(y),x2:W-R,y2:Y(y),stroke:"#e8edf5","stroke-width":1}));
+      if(y!==0) { const ty=el("text",{x:L-10,y:Y(y)+4,"text-anchor":"end",fill:"#66758b","font-size":12}); ty.textContent=y; svg.appendChild(ty); }
+    }
+    svg.appendChild(el("line",{x1:L,y1:Y(0),x2:W-R,y2:Y(0),stroke:"#52627a","stroke-width":1.6}));
+    svg.appendChild(el("line",{x1:X(0),y1:H-B,x2:X(0),y2:T,stroke:"#52627a","stroke-width":1.6}));
+    let d="";
+    for(let i=0;i<=500;i++) {
+      const x=xmin+(xmax-xmin)*i/500, y=t.f(x);
+      d+=(i===0?"M":"L")+X(x).toFixed(2)+" "+Y(y).toFixed(2)+" ";
+    }
+    svg.appendChild(el("path",{d,fill:"none",stroke:"#2457c5","stroke-width":4,"stroke-linecap":"round","stroke-linejoin":"round"}));
+    const xt=el("text",{x:W-R-4,y:Y(0)-9,"text-anchor":"end",fill:"#52627a","font-size":13}); xt.textContent="x"; svg.appendChild(xt);
+    const yt=el("text",{x:X(0)+9,y:T+12,fill:"#52627a","font-size":13}); yt.textContent="y"; svg.appendChild(yt);
+    svg.setAttribute("aria-label","Graf funkce: "+t.name);
+  }
+  function optionsFor(type) { return type==="mono" ? monoOptions : shapeOptions; }
+  function render() {
+    const t=tasks[order[index]];
+    answered=false;
+    draw(t);
+    taskNo.textContent=`Úloha ${index+1} z ${order.length}`;
+    category.textContent=t.name;
+    prompt.textContent=index%2===0 ? "Jaká je monotónnost funkce na zobrazeném intervalu?" : "Jaká je konvexita/konkávita funkce na zobrazeném intervalu?";
+    const type=index%2===0 ? "mono" : "shape";
+    choices.innerHTML="";
+    optionsFor(type).forEach(([value,label],i)=>{
+      const lab=document.createElement("label"); lab.className="choice";
+      const radio=document.createElement("input"); radio.type="radio"; radio.name="answer"; radio.value=value; radio.required=true;
+      const span=document.createElement("span"); span.textContent=label;
+      lab.append(radio,span); choices.appendChild(lab);
+    });
+    feedback.className=""; feedback.style.display="none"; feedback.textContent="";
+    checkBtn.disabled=false; nextBtn.disabled=true; checkBtn.style.display="inline-block";
+    bar.style.width=(index/order.length*100)+"%";
+    updateScore();
+  }
+  function correctAnswer(t,type) {
+    if(type==="mono") return t.mono;
+    return t.shape;
+  }
+  function updateScore() { scoreEl.textContent=`${score} / ${index}`; }
+  form.addEventListener("submit",e=>{
+    e.preventDefault();
+    if(answered) return;
+    const selected=form.querySelector('input[name="answer"]:checked');
+    if(!selected) {
+      feedback.className="neutral"; feedback.style.display="block"; feedback.textContent="Nejdřív vyber jednu odpověď.";
+      return;
+    }
+    const t=tasks[order[index]], type=index%2===0?"mono":"shape";
+    const correct=correctAnswer(t,type);
+    answered=true;
+    const correctLabel=optionsFor(type).find(o=>o[0]===correct)[1];
+    if(selected.value===correct) {
+      score++; feedback.className="good"; feedback.textContent="Správně! "+t.description;
+    } else {
+      feedback.className="bad"; feedback.textContent="Tentokrát ne. Správná odpověď: "+correctLabel+". "+t.description;
+    }
+    choices.querySelectorAll("input").forEach(i=>i.disabled=true);
+    checkBtn.disabled=true; nextBtn.disabled=false;
+    bar.style.width=((index+1)/order.length*100)+"%";
+    updateScore();
+    if(index===order.length-1) nextBtn.textContent="Zkusit znovu ↻";
+  });
+  nextBtn.addEventListener("click",()=>{
+    if(index<order.length-1) { index++; render(); }
+    else {
+      const finalScore=score;
+      order=tasks.map((_,i)=>i).sort(()=>Math.random()-.5);
+      index=0; score=0; render();
+      feedback.className="neutral"; feedback.style.display="block";
+      feedback.textContent=`Dokončeno! V předchozím kole máš ${finalScore} správných odpovědí z ${order.length}. Začni nové promíchané kolo.`;
+    }
+  });
+  order=tasks.map((_,i)=>i).sort(()=>Math.random()-.5);
+  render();
+})();
+</script>
+</body>
+</html>
